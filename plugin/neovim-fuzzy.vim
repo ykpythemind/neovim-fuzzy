@@ -135,6 +135,7 @@ endif
 command! -nargs=? FuzzyGrep              call s:fuzzy_grep(<q-args>)
 command! -nargs=? FuzzyOpen              call s:fuzzy_open(<q-args>)
 command! -nargs=? FuzzyOpenBuffer        call s:fuzzy_open_buffer()
+command!          FuzzyOpenOldfiles      call s:fuzzy_open_oldfiles()
 command!          FuzzyOpenFileInTab     call s:fuzzy_split('tab')
 command!          FuzzyOpenFileInSplit   call s:fuzzy_split('split')
 command!          FuzzyOpenFileInVSplit  call s:fuzzy_split('vsplit')
@@ -175,6 +176,10 @@ function! s:fuzzy_open_buffer() abort
   return s:handle_open('', 'FuzzyOpenBuffer')
 endfunction
 
+function! s:fuzzy_open_oldfiles() abort
+  return s:handle_open('', 'FuzzyOpenOldfiles')
+endfunction
+
 function! s:handle_open(root, mode) abort
   let root = empty(a:root) ? s:fuzzy_getroot() : a:root
   exe 'lcd' root
@@ -202,7 +207,10 @@ function! s:handle_open(root, mode) abort
   let ignorelist = !empty(bufname('%')) ? bufs + [expand(bufname('%'))] : bufs
 
   if a:mode == 'FuzzyOpenBuffer'
-    let files = [] " nop
+    let files = []
+  elseif a:mode == 'FuzzyOpenOldfiles'
+    let bufs = [] " ignore buffers
+    let files = filter(copy(v:oldfiles), 'stridx(v:val, root) != -1') " List only current working oldfiles
   else
     " Get all files, minus the open buffers.
     try
