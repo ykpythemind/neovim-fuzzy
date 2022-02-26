@@ -295,6 +295,8 @@ function! s:fuzzy(choices, opts) abort
     set nonumber
     set nospell
   endif
+  exe 'wincmd J'
+  exe 'resize' . g:fuzzy_winheight
   let s:fuzzy_bufnr = bufnr('%')
   set filetype=fuzzy
   startinsert
