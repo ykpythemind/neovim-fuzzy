@@ -134,6 +134,7 @@ endif
 
 command! -nargs=? FuzzyGrep              call s:fuzzy_grep(<q-args>)
 command! -nargs=? FuzzyOpen              call s:fuzzy_open(<q-args>)
+command! -nargs=? FuzzyOpenBuffer        call s:fuzzy_open_buffer()
 command!          FuzzyOpenFileInTab     call s:fuzzy_split('tab')
 command!          FuzzyOpenFileInSplit   call s:fuzzy_split('split')
 command!          FuzzyOpenFileInVSplit  call s:fuzzy_split('vsplit')
@@ -167,6 +168,14 @@ function! s:fuzzy_grep(str) abort
 endfunction
 
 function! s:fuzzy_open(root) abort
+  return s:handle_open(a:root, 'FuzzyOpen')
+endfunction
+
+function! s:fuzzy_open_buffer() abort
+  return s:handle_open('', 'FuzzyOpenBuffer')
+endfunction
+
+function! s:handle_open(root, mode) abort
   let root = empty(a:root) ? s:fuzzy_getroot() : a:root
   exe 'lcd' root
 
@@ -192,21 +201,25 @@ function! s:fuzzy_open(root) abort
   " Save a list of files the find command should ignore.
   let ignorelist = !empty(bufname('%')) ? bufs + [expand(bufname('%'))] : bufs
 
-  " Get all files, minus the open buffers.
-  try
-    let results = s:fuzzy_source.find([])
-    let files = filter(results, 'index(ignorelist, v:val) == -1')
-  catch
-    echoerr v:exception
-    return
-  finally
-    lcd -
-  endtry
+  if a:mode == 'FuzzyOpenBuffer'
+    let files = [] " nop
+  else
+    " Get all files, minus the open buffers.
+    try
+      let results = s:fuzzy_source.find([])
+      let files = filter(results, 'index(ignorelist, v:val) == -1')
+    catch
+      echoerr v:exception
+      return
+    finally
+      lcd -
+    endtry
+  endif
 
   " Put it all together.
   let result = bufs + files
 
-  let opts = { 'lines': g:fuzzy_winheight, 'statusfmt': 'FuzzyOpen %s (%d files)', 'root': root }
+  let opts = { 'lines': g:fuzzy_winheight, 'statusfmt': a:mode . ' %s (%d files)', 'root': root }
   function! opts.handler(result)
     return { 'name': join(a:result) }
   endfunction
