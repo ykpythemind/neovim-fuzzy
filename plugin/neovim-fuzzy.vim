@@ -182,6 +182,8 @@ endfunction
 
 function! s:handle_open(root, mode) abort
   let root = empty(a:root) ? s:fuzzy_getroot() : a:root
+
+  let cwd = getcwd()
   exe 'lcd' root
 
   " Get open buffers.
@@ -206,23 +208,23 @@ function! s:handle_open(root, mode) abort
   " Save a list of files the find command should ignore.
   let ignorelist = !empty(bufname('%')) ? bufs + [expand(bufname('%'))] : bufs
 
-  if a:mode == 'FuzzyOpenBuffer'
-    let files = []
-  elseif a:mode == 'FuzzyOpenOldfiles'
-    let bufs = [] " ignore buffers
-    let files = filter(copy(v:oldfiles), 'stridx(v:val, root) != -1') " List only current working oldfiles
-  else
-    " Get all files, minus the open buffers.
-    try
-      let results = s:fuzzy_source.find([])
-      let files = filter(results, 'index(ignorelist, v:val) == -1')
-    catch
-      echoerr v:exception
-      return
-    finally
-      lcd -
-    endtry
-  endif
+  try
+    if a:mode == 'FuzzyOpenBuffer'
+      let files = []
+    elseif a:mode == 'FuzzyOpenOldfiles'
+      let bufs = [] " ignore buffers
+      let files = filter(copy(v:oldfiles), 'stridx(v:val, root) != -1') " List only current working oldfiles
+    else
+      " Get all files, minus the open buffers.
+        let results = s:fuzzy_source.find([])
+        let files = filter(results, 'index(ignorelist, v:val) == -1')
+    endif
+  catch
+    echoerr v:exception
+    return
+  finally
+    exe 'lcd' cwd
+  endtry
 
   " Put it all together.
   let result = bufs + files
@@ -264,6 +266,8 @@ function! s:fuzzy(choices, opts) abort
       return
     endif
 
+    let cwd = getcwd()
+
     let results = readfile(self.outputs)
     if !empty(results)
       for result in results
@@ -283,6 +287,8 @@ function! s:fuzzy(choices, opts) abort
         endif
       endfor
     endif
+
+    exe 'lcd' cwd
   endfunction
 
   let s:fuzzy_prev_window = win_getid()
